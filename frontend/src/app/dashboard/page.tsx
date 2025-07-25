@@ -24,7 +24,9 @@ interface DashboardData {
   }>
 }
 
+
 export default function Dashboard() {
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -34,81 +36,58 @@ export default function Dashboard() {
   }, [])
 
   const fetchDashboardData = async () => {
+    setLoading(true)
+    setError('')
+    const umkm_id = '1' //dummy
+
     try {
-      // Replace with your actual API endpoint
-      const response = await fetch('/api/dashboard')
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data')
+      const [summaryRes, dailySalesRes, recentOrdersRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/reports/transaction_summary?umkm_id=${umkm_id}`),
+        fetch(`${API_BASE_URL}/reports/monthly_transaction?umkm_id=${umkm_id}`),
+        fetch(`${API_BASE_URL}/reports/last_transaction?umkm_id=${umkm_id}`)
+      ])
+
+      if (!summaryRes.ok || !dailySalesRes.ok || !recentOrdersRes.ok) {
+        throw new Error('Gagal memuat salah satu data dashboard')
       }
-      const dashboardData = await response.json()
+
+      const summaryData = await summaryRes.json()
+      const dailySalesData = await dailySalesRes.json()
+      const recentOrdersData = await recentOrdersRes.json()
+
+      console.log('Recent Orders:', recentOrdersData)
+
+      const dashboardData: DashboardData = {
+        todayRevenue: summaryData?.daily?.total_sales || 0,
+        todayOrders: summaryData?.daily?.total_transactions || 0,
+        monthlyRevenue: summaryData?.monthly?.total_sales || 0,
+        monthlyOrders: summaryData?.monthly?.total_transactions || 0,
+        dailySales: Array.isArray(dailySalesData?.data)
+          ? dailySalesData.data.map((item: any) => ({
+              day: new Date(item.date).getDate().toString(), // hanya hari (1-31)
+              amount: item.total_amount
+            }))
+          : [],
+      recentOrders: Array.isArray(recentOrdersData)
+        ? recentOrdersData.map((trx: any) => ({
+            id: trx.sale_id?.toString() || '',
+            timestamp: trx.sale_date,
+            status: trx.status,
+            total: trx.total_amount,
+            items: Array.isArray(trx.items)
+              ? trx.items.map((item: any) => ({
+                  name: item.name,
+                  price: item.unit_price
+                }))
+              : []
+          }))
+        : []
+      }
+
       setData(dashboardData)
     } catch (err) {
-      console.error('Dashboard API Error:', err)
-      setError('Gagal memuat data dashboard')
-      // Mock data for demonstration with Indonesian content
-      setData({
-        todayRevenue: 250000,
-        todayOrders: 100,
-        monthlyRevenue: 7500000,
-        monthlyOrders: 2850,
-        recentOrders: [
-          {
-            id: '#001',
-            items: [
-              { name: 'Nasi Goreng', price: 15000 },
-              { name: 'Es Teh Manis', price: 3000 },
-              { name: 'Kerupuk', price: 2000 }
-            ],
-            total: 20000,
-            timestamp: new Date().toISOString(),
-            status: 'selesai'
-          },
-          {
-            id: '#002',
-            items: [
-              { name: 'Bakso', price: 20000 },
-              { name: 'Air Putih', price: 2000 },
-              { name: 'Kerupuk', price: 2000 }
-            ],
-            total: 24000,
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-            status: 'diproses'
-          },
-          {
-            id: '#003',
-            items: [
-              { name: 'Gado-gado', price: 12000 },
-              { name: 'Es Jeruk', price: 5000 }
-            ],
-            total: 17000,
-            timestamp: new Date(Date.now() - 7200000).toISOString(),
-            status: 'selesai'
-          }
-        ],
-        dailySales: [
-          { day: '1', amount: 180000 },
-          { day: '2', amount: 220000 },
-          { day: '3', amount: 350000 },
-          { day: '4', amount: 180000 },
-          { day: '5', amount: 280000 },
-          { day: '6', amount: 190000 },
-          { day: '7', amount: 160000 },
-          { day: '8', amount: 240000 },
-          { day: '9', amount: 320000 },
-          { day: '10', amount: 200000 },
-          { day: '11', amount: 280000 },
-          { day: '12', amount: 340000 },
-          { day: '13', amount: 220000 },
-          { day: '14', amount: 160000 },
-          { day: '15', amount: 380000 },
-          { day: '16', amount: 290000 },
-          { day: '17', amount: 210000 },
-          { day: '18', amount: 250000 },
-          { day: '19', amount: 190000 },
-          { day: '20', amount: 420000 },
-          { day: '21', amount: 250000 }
-        ]
-      })
+      console.error('Error loading dashboard data:', err)
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {
       setLoading(false)
     }
@@ -249,7 +228,7 @@ export default function Dashboard() {
                           </span>
                         </div>
                         <div className="text-sm text-gray-600 mb-1">
-                          <span className="font-medium">OrderID {order.id}</span>
+                          <span className="font-medium">OrderID #{order.id}</span>
                         </div>
                         <div className="space-y-1">
                           {order.items.map((item, index) => (
