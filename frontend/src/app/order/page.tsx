@@ -512,7 +512,7 @@ export default function OrderPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <span className="font-medium text-gray-800">{item.name}</span>
-                          <p className="text-xs text-gray-500">${item.unit_price.toFixed(2)} each</p>
+                          <p className="text-xs text-gray-500">Rp.{item.unit_price.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} each</p>
                         </div>
                         
                         <div className="flex items-center space-x-2">
@@ -533,7 +533,7 @@ export default function OrderPage() {
                         </div>
 
                         <span className="font-bold text-lg text-gray-800 ml-4">
-                          ${(item.unit_price * item.quantity).toFixed(2)}
+                          Rp.{(item.unit_price * item.quantity).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
 
                         <button
@@ -555,7 +555,7 @@ export default function OrderPage() {
                 <div className="flex justify-between items-center pt-4 mt-4 border-t-2 border-gray-200">
                   <span className="text-lg font-bold">Total:</span>
                   <span className="text-xl font-bold text-green-600">
-                    ${orderConfirmation.total.toFixed(2)}
+                    Rp.{orderConfirmation.total.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               )}
